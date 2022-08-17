@@ -87,17 +87,17 @@ x 轴和 y 轴分别代表了两个代币在池内的数量，函数穿过 x 轴
 x∗y=k
 ```
 
-每一笔交易都会改变两个代币的数量，无论数量如何变化，`k` 都应该保持不变。
+每一笔交易都会改变两个代币的数量，但是无论 `x` 和 `y` 数量如何变化，`k` 都应该保持不变。
 
 <!-- $$(x + \Delta x)(y - \Delta y) = xy$$ -->
 <img src="https://render.githubusercontent.com/render/math?math=(x%2B\Delta x)(y-\Delta y)=xy" />
 
-这里的意思是用 `Delta x` 数量的`token x` 交换出 `Delta y` 数量的 `token y`。所以计算 `Delta y` 的公式为：
+这里的意思是用 `△ x` 数量的`token x` 交换出 `△ y` 数量的 `token y`。所以计算 `△ y` 的公式为：
 
 <!-- $$\Delta y = \frac{y \Delta x} {x + \Delta x}$$ -->
 <img src="https://render.githubusercontent.com/render/math?math=\Delta y=\frac{y \Delta x}{x %2B \Delta x}" />
 
-请注意，我们现在得到的 `Delta y` 是数量而不是价格。计算数量的方法对应 `Exchange.getAmount()`。
+请注意，我们现在得到的 `△ y` 是数量而不是价格。计算数量的方法对应 `Exchange.getAmount()`。
 
 ![x * y = k](./images/uniswap-v1-like-02.png)
 
@@ -121,7 +121,7 @@ await exchange.getEthAmount(toWei(2000)); // 500
 
 如上所示，当我们试图掏空池子的时候，却只得到预期的一半。
 
-注意：我们最初基于汇率的定价函数没有错（恒定和公式的 AMM）。事实上，当我们交易的代币数量相对数量非常小时。但是要提供 AMM，我们需要更复杂的东西。
+注意：我们最初基于汇率的定价函数没有错（恒定和公式的 AMM `Px =y/x`）。事实上，当我们交易的代币数量相对数量非常小时恒定和公式是没问题的。但是要面向大交易数量提供 AMM时，我们需要更复杂的东西。
 
 ## Exchange 合约实现
 
@@ -139,10 +139,10 @@ function addLiquidity(uint256 _tokenAmount)
         IERC20 token = IERC20(tokenAddress);
         token.transferFrom(msg.sender, address(this), _tokenAmount);
     } else {
-        // 后续新增流动性则需要按照当前的数量比例，等比增加
+        // 后续新增流动性则需要按照当前的x和y的数量比例，等比增加
         // 保证价格添加流动性前后一致
         uint256 ethReserve = address(this).balance - msg.value;
-        uint256 tokenReserve = getReserve();
+        uint256 tokenReserve = getReserve(); 
         uint256 tokenAmount = （msg.value * tokenReserve) / ethReserve;
 
         require(_tokenAmount >= tokenAmount, "insufficient token amount");
@@ -159,7 +159,7 @@ function addLiquidity(uint256 _tokenAmount)
 
 ```solidity
 // This is a low-level function, so let it be private.
-function getAmount(
+function _getAmount(
     uint256 inputAmount,
     uint256 inputReserve,
     uint256 outputReserve
@@ -179,12 +179,12 @@ function getEthAmount(uint256 _tokenSold) public view returns (uint256)
 ### 交易功能(swap)
 
 现在，我们已准备好实现交易功能
-
+下面由 `(x+△x)(y-△y)=k=xy` 而来：
 ```solidity
 // 使用eth购买token
 function ethToTokenSwap(uint256 _minTokens) public payable {
     uint256 tokenReserve = getReserve();
-    uint256 tokensBought = getAmount(
+    uint256 tokensBought = _getAmount(
         msg.value,
         address(this).balance - msg.value,
         tokenReserve
@@ -198,7 +198,7 @@ function ethToTokenSwap(uint256 _minTokens) public payable {
 
 将 ETH 换成 token 意味着将一定数量的 ETH （存储在 `msg.value` 中）发送到可支付的合约函数并获得代币作为回报。请注意，我们需要将 `msg.value` 从合约的余额中减去，因为在调用该函数时，发送的 ETH 已经添加到其余额中。
 
-这里的另一个重要变量是 `_minTokens` —— 这是用户想要用 ETH 换出 token 的最小数量。此金额在 UI 中计算，使用用户设置的最大滑点来计算，即用户发送的交易其最小成交量是 `期望的成交量 * (1 - Slippage)` 。这是一个非常重要的机制，可以保护用户免受抢跑机器人(front-running bots)的攻击。
+这里的另一个重要变量是 `_minTokens` —— 这是用户想要用 ETH 换出 token 的最小数量。此金额在前端 UI 中计算，使用用户设置的最大滑点来计算，即用户发送的交易其最小成交量是 `期望的成交量 * (1 - Slippage)` 。这是一个非常重要的机制，可以保护用户免受抢跑机器人(夹子 front-running bots)的攻击。
 
 > front-running bots 会在用户订单前面插入一个相同方向的订单，比如当用户想买时，在用户订单前面插入一个同样买入的订单，当 bots 的订单完成后，再执行用户订单，必然会导致用户承受更高的价格，而当用户订单完成后，池中价格已上涨，bot 通常会将之前的订单卖出，赚取其中的利差。而用户设置了最小成交量之后，当价格偏差太大，输出数量小于设定值，合约会直接将交易 revert，有效的避免 front-running bots 攻击
 
@@ -231,12 +231,15 @@ function tokenToEthSwap(uint256 _tokensSold, uint256 _minEth) public {
 
 #### 定义
 
-`LP token` (Liquidity Provider token 流动性提供者的凭证) 是向流动性提供者发行的 ERC20 代币，是一种权益证明：
+`LP token` (Liquidity Provider token 流动性提供者的凭证) 是向流动性提供者发行的 ERC20 代币，是一种权益证明(类似于pos，prove of stake)：
 
 1. 流动性提供者注入流动性，获得 `LP token`
 2. 获得的 `LP token` 数量与用户在流动性池中的流动性份额成正比
 3. 手续费根据持有的 `LP token` 数量按比例分配
 4. `LP token` 可以换回 流动性 + 累计分配的手续费
+
+注：这个token并不会在小狐狸显示
+注: v1、v2中，随着手续费的累加，1单位`LP token`的`x`和`y`的数量越来越多
 
 #### 如何制定发行数量
 
@@ -294,15 +297,18 @@ function addLiquidity(uint256 _tokenAmount)
         uint256 tokenReserve = getReserve();
         // solidity不支持浮点运算，所以运算顺序非常重要，提倡先乘后除原则
         // 如果 msg.value * (tokenReserve / ethReserve) 的写法会产生计算误差
+        // △y = △x*y/y
         uint256 tokenAmount = (msg.value * tokenReserve) / ethReserve;
 
         // 保证流动性按照当前比例注入，如果token少于应有数量则不能执行
         require(_tokenAmount >= tokenAmount, "insufficient token amount");
 
         IERC20 token = IERC20(tokenAddress);
+        //eth是直接打进合约，y token需要合约拿过来
         token.transferFrom(msg.sender, address(this), tokenAmount);
 
         // 根据注入的eth流动性 与 合约eth数量 的比值分发 LP token
+        // △a = a*△e/e
         uint256 liquidity = (totalSupply() * msg.value) / ethReserve;
         _mint(msg.sender, liquidity);   //  ERC20._mint() 向流动性提供者发送 LP token
 
@@ -315,14 +321,14 @@ function addLiquidity(uint256 _tokenAmount)
 
 在收取手续费之前先思考几个问题：
 
-1. 我们要收取 ETH 或代币的费用吗？我们想用 ETH 还是代币向流动性提供者支付奖励？
+1. 我们要收取 ETH 或代币的费用吗？（答案是肯定的）我们想用 ETH 还是代币向流动性提供者支付奖励？
 2. 如何从每次交易中收取少量固定费用？
 3. 如何根据流动性提供者的贡献将累积费用分配给他们？
 
 先看看问题 2 和 3，我们可以在每次交易进行时发送额外的费用，并积累到一个基金池中，任何流动性提供者都可以从中提取相应份额的手续费。
 
 1. 每次交易，从中扣除手续费，而不是额外收取
-2. 我们已经有了资金（被注入池中充当流动性的资产）——这是外汇储备！储备金可用于积累费用。这意味着**储备会随着时间的推移而增长**，所以恒定乘积公式不是那么恒定！不过和储备金相比，付给 LP (Liquidity provider 流动性提供者)的费用是很小一部分，并因此也很难通过分配手续费的路径来影响储备金。
+2. 我们已经有了资金（被注入池中充当流动性的资产）——这是外汇储备！储备金可用于积累费用。这意味着**储备会随着时间的推移而增长**，所以恒定乘积公式不是那么恒定！（即双曲线向右上方平移）不过和储备金相比，付给 LP (Liquidity provider 流动性提供者)的费用是很小一部分，并因此也很难通过分配手续费的路径来影响储备金。
 3. 所以，现在已经有了第一个问题的答案：费用以交易资产的货币支付(即交易对中的两种货币)
 
 UniswapV1 从每次交易中收取 0.03% 的手续费。为了计算简单，我们收取 1%。向合约添加费用就像添加几个乘数一样简单 `Exchange.getAmount()`
@@ -360,6 +366,7 @@ function removeLiquidity(uint256 _amount)
     uint256 tokenAmount = (getReserve() * _amount) / totalSupply();
 
     // ERC20._burn() 销毁LP
+    // 小技巧tips:先burn再transfer的方法可以防止重入攻击
     _burn(msg.sender, _amount);
     // 返还用户质押的 ETH 和 token
     payable(msg.sender).transfer(ethAmount);
@@ -419,37 +426,6 @@ removedAmount = reserve * (amountLP / totalAmountLP)
 
 4. 流动性提供者获得 109.9 个 ETH （包括交易费用）和 181.9836 个代币。如您所见，这些数字与存入的数字不同：我们获得了用户交易的 10 个 ETH ，但必须提供 18.0164 个代币作为交换。但是，该金额包括用户支付给我们的 1% 的费用。由于流动性提供者提供了所有流动性，他们获得了所有费用。
 
-## 代码使用方法
-
-### 安装
-
-```sh
-yarn install
-```
-
-### 编译合约
-
-```sh
-yarn build
-```
-
-或
-
-```sh
-npx hardhat compile
-```
-
-### 运行测试
-
-```sh
-yarn test
-```
-
-或
-
-```sh
-npx hardhat test
-```
 
 ## 可能遇到的问题
 
@@ -477,7 +453,7 @@ module.exports = {
 ```
 
 ## 参考链接
-
+主要参考： https://github.com/Dapp-Learning-DAO/Dapp-Learning/blob/main/basic/13-decentralized-exchange/uniswap-v1-like/README.md
 ### 原系列教程
 
 - Part 1 ：<https://jeiwan.net/posts/programming-defi-uniswap-1/>
