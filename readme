@@ -1,0 +1,68 @@
+https://learnblockchain.cn/docs/hardhat/tutorial/ 中文入门教程
+https://github.com/Dapp-Learning-DAO/Dapp-Learning/tree/main/basic/07-hardhat 就是复制上面的教程
+
+1、环境搭建
+    1、npm init --yes
+    2、npm install --save-dev hardhat 必须运行这个，不然报错
+        --save 保存到依赖
+        --save-dev
+        运行时需要用到的包使用--save，否则使用--save-dev。
+
+    3、在安装 Hardhat 的目录下运行：
+        npx hardhat  创建项目
+        选择❯ Create an empty hardhat.config.js
+
+
+
+    4、安装
+    cnpm install --save-dev @nomiclabs/hardhat-ethers ethers @nomiclabs/hardhat-waffle ethereum-waffle chai
+    cnpm install --save openzeppelin/contracts
+    cnpm install --save dotenv
+
+        Hardhat 是围绕**task(任务)和 plugins(插件)**的概念设计的。
+        在本教程中，我们将使用 Ethers.js 和 Waffle 插件
+        通过他们与以太坊进行交互并测试合约。
+
+    5、将高亮行
+        require("@nomiclabs/hardhat-waffle");
+        添加到你的 hardhat.config.js 中：
+        这里引入 hardhat-waffle，因为它依赖于 hardhat-ethers，因此不需要同时添加两个。
+
+        npx hardhat accounts查看账号
+
+2、编写合约
+    ./contract/Token.sol
+
+3、编译 npx hardhat compile
+
+4、测试
+    npx hardhat test
+    
+    ./test/Token.js
+
+5、用 Hardhat Network 调试
+    代码中调用import "hardhat/console.sol";
+    将一些console.log添加到transfer()函数中：
+
+6、部署合约
+    npx hardhat run scripts/sample-script.js
+    
+    运行Hardhat Network
+        npx hardhat node
+        只要将钱包或应用程序连接到http://localhost:8545就可以使用它
+        要在这个网络上运行一个部署脚本，只需要使用--network localhost来运行脚本
+        npx hardhat run scripts/sample-script.js --network localhost
+
+        npx hardhat run scripts/sample-script.js代码将再次部署在Hardhat network 上
+7、部署到真实网络
+    要部署到诸如主网或任何测试网之类的线上网络，
+    你需要在hardhat.config.js 文件中添加一个network条目，即引用 Alchemy
+    npx hardhat run scripts/deploy.js --network <network-name>
+    npx hardhat run scripts/deploy.js --network ropsten
+    
+
+8、Hardhat 前端模板,,用另一个教程
+    本中使用的Solidity合约
+    使用ethers.js和Waffle的测试用例
+    使用ethers.js与合约进行交互的最小前端
+ 
