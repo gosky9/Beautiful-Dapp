@@ -1,0 +1,203 @@
+8.0
+更新
+    safe math
+    custom errors
+    functions outside contract
+    import {symboll as alias, symbol2} from "filename";
+    Salted contract creations / create2
+
+
+external  外部可见，函数每次都写，？和public什么区别？，这个是修饰函数
+public 内部外部都可以读取这个值，这个是修饰状态变量.合约中的其它函数还可以在调用这个函数
+
+pure  纯函数，不对链上进行读写.仅仅对输入的参数进行运算，不能读取状态变量和全局变量，只能有局部变量
+view   只读，会读取变量的值，比如状态变量和全局变量
+returns  要加s
+
+常量constants 
+    address public constant MY_ADDRESS = 0x0000000000000000000000000000000000000000;
+    大写，下划线_分割
+    uint public constant MY_UINT = 123;
+状态变量  永远记录在链上，把数据写到区块链上
+局部变量
+全局变量    不用定义就能读取的变量，记录了链上信息和账户信息
+    address sender = msg.sender; //调用这个函数的人或合约，
+    uint timastamp = block.timestamp;
+    uint blockNum = block.number;
+
+橙色是写入
+蓝色是读取
+
+变量默认值
+    bool b; //false
+    uint u; //0
+    int i; //0
+    address public a; // 0x0000000000000000000000000000000000000000(40个0)
+    bytes32 public b32; //0.0000000000000000000000000000000000000000000000000000000000000000(64个0)
+    mapping
+    array
+
+报错控制
+    require, revert, assert
+    gas refund, state updates are reverted
+    custom error - save gas 
+
+array
+    动态数字，固定数组
+    初始化
+    Insert(push),get,update,delete,pop,length
+    在memory中创建array
+    从函数return array
+
+映射
+    Mapping (address => bool) public balances;
+可迭代映射
+    没懂23
+
+结构体
+    以storage读取就可以修改，相当于指针
+
+枚举enum
+    记录多种状态
+    enum Status{
+        None,
+        Pending,
+        Complete
+    }
+    默认值是第一个值
+
+
+
+
+1.新特性
+    1.safemath
+26代理合约没懂
+
+27存储位置
+    storage状态变量。读取之后可以直接修改，类似指针
+    memory局部变量。修改之后不会保存，只是局部变量
+    calldata和memory类似，但是只能在输入参数中
+
+    输入参数中，如果是数组/string，必须定义存储位置memory或calldata。uint[] memory y,
+    string是byte类型的数组
+    返回的是字符串。string。结构体也要加上memory 比如：returns(MyStruct memory)
+    内存中的数组必须定长，复制有索引不能用push
+
+    calldata在调用其他函数，可以直接传过去，用memory会复制消耗gas
+ 
+38 fallback()
+    有两个功能
+        1.调用函数不存在
+            fallback() external{}
+        2.向合约发送主币
+            fallback() external payable{}
+    第2种写法
+        2.reveive() external payable{}
+    有msg.data就会调用fallback() 否则调用receive()
+39 发送主币
+    payable(to).trasfer(1 ether); 失败会revert 2300gas
+    bool sent = payable(to).send(1 ether); 返回bool值  2300gas
+    (bool success, ) = payable(to).call{value:1 ether}("");
+
+    address(this).balances
+
+41 调用其他合约
+    1.直接当做类型TestContract
+42 接口，调用其他合约
+    interface ICounter{
+
+    }
+43 调用其他合约 低级call
+     
+44 委托调用
+    msg.sender 是B
+    不能改变状态变量
+
+45 工厂合约
+    Account [] oublic accounts;
+    function createAccount(aadree _owner)external{}
+        Account account = new Account{value: 111}(_owner);
+        accounts.push(account);  //地址
+    }
+46库合约
+    节约代码量
+    常用算法抽象成库合约
+    可以把算法抽象成库合约，比如求最大值，求最小值，求和，求平均值等等
+    library Math {
+        function max(uint a, uint b) internal pures returns (uint) {
+            return a > b ? a : b;
+        }
+    }
+47哈希算法
+    returns(bytes memory)
+    return keccak256(abi.encodePacked(text,num,addr));
+    return keccak256(abi.encode(text,num,addr));
+48验证签名
+    1.将消息签名
+    2.将消息哈希
+    3.将消息和私钥签名，链下
+    4.恢复签名
+
+    
+49权限控制合约
+    比如onlyOwner
+    mapping [bytes32角色][账户addr]=bool
+    internal内部函数，继承后可见
+    授予权限，撤销权限
+50.自毁合约
+    selfdestruct(payable（msg.sender）)//把最后的主币发送过去，如果是合约，会强行发送到合约地址
+51.小猪存钱罐
+    存钱罐，
+    存钱，任何人都可以，receive() external payable{}
+    取钱，require(拥有者==msg.sender),自毁
+    查询余额
+52.ERC20 合约
+    满足IERC20的接口就是ERC20
+    写入就会event
+    contract ERC20 is IERC20{}
+53.多钱钱包
+
+56.英式拍卖
+
+57.众筹合约
+
+58.Create2部署合约
+    salt是唯一变量
+    new： 部署合约
+    1. new Deploy();
+    2. new DeployWithCreate2{
+        salt:byte32(_salt)
+        }();
+    3. 计算地址：工厂合约地址+salt+bytecode
+        byte32 hash = keccak256(
+            abi.encodePacked{
+                byte1(0xff),address(this),_salt,keccak256(bytecode)
+            }
+        );
+        return address(uint160(uint(hash)));//uint160是address的标准格式
+        bytecode: 合约源代码的机器码
+        function getBytecode(address _owner) public pure returns (byte memory){
+            bytes memory bytecode = type(DeployWithCreate2).creationCode;
+            return abi.encodePacked(bytecode, abi.encode(_owner));//——owner是constructor的参数
+        }
+59.Multi Call
+        多次调用打包
+        (bool success, bytes memory result) = addr[i].staticcall(data[i]);
+        2. data:
+            abi.encodeWithSignature("func1()")
+            abi.encodeWithSelector(this.func1.selector)
+60.多重委托调用
+    
+61.ABI解码
+
+62.Gas优化
+    calldata
+    状态变量加载到memory
+    短路
+    for里面i++改成++i
+    缓存 array.length
+    加载数组元素到memory  num = nums[i]
+
+63.时间锁合约
+    defi类的可以保护管理员
+    
