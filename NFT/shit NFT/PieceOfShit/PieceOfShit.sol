@@ -31,8 +31,8 @@ contract PieceOfShit is ERC2981, ERC721AQueryable, Ownable {
     struct Status {
         // config
         uint256 price;
-        uint32 maxSupply;
-        uint32 publicSupply;
+        uint32 maxSupply;  // 10,000
+        uint32 publicSupply;  // 
         uint32 instantFreeSupply;
         uint32 randomFreeSupply;
         uint32 instantFreeWalletLimit;
@@ -55,11 +55,11 @@ contract PieceOfShit is ERC2981, ERC721AQueryable, Ownable {
         uint32 randomFreeSupply,
         uint32 instantFreeWalletLimit,
         uint32 walletLimit
-    ) ERC721A("pieceofshit", "SHIT") { // 合约名称，合约简称，需要修改的地方
+    ) ERC721A("pieceofshit", "SHIT") { // 合约名称，合约简称
         require(maxSupply >= teamSupply + instantFreeSupply);
         require(maxSupply - teamSupply - instantFreeSupply >= randomFreeSupply);
 
-        _lotterySalt = keccak256(abi.encodePacked(address(this), block.timestamp)); // ??? 1
+        _lotterySalt = keccak256(abi.encodePacked(address(this), block.timestamp)); // ??? 1,当前地址和当前区块链时间戳哈希成一个bytes32
         _price = price;
         _maxSupply = maxSupply;
         _teamSupply = teamSupply;
@@ -68,7 +68,7 @@ contract PieceOfShit is ERC2981, ERC721AQueryable, Ownable {
         _randomFreeSupply = randomFreeSupply;
         _walletLimit = walletLimit;
 
-        setFeeNumerator(750); // ??? 2
+        setFeeNumerator(750); // ??? 2，设置免费数量？
     }
 
     function mint(uint32 amount) external payable {
@@ -93,14 +93,14 @@ contract PieceOfShit is ERC2981, ERC721AQueryable, Ownable {
             uint32 randomFreeAmount = 0;
             uint32 randomFreeMinted = _randomFreeMinted;
             uint32 quota = _randomFreeSupply - randomFreeMinted;
-            // 随机免费，会把钱返还
+            // 随机免费，会把钱返还，重点
             if (quota > 0) {
                 uint256 randomSeed = uint256(keccak256(abi.encodePacked(
                     msg.sender,
                     publicMinted,
                     block.difficulty,
-                    _lotterySalt)));
-
+                    _lotterySalt))); // 随机数种子
+                    
                 for (uint256 i = 0; i < enterLotteryAmount && quota > 0; ) {
                     if (uint16((randomSeed & 0xFFFF) % publicSupply) < quota) {
                         randomFreeAmount += 1;
@@ -138,7 +138,7 @@ contract PieceOfShit is ERC2981, ERC721AQueryable, Ownable {
         return _maxSupply - _teamSupply;
     }
 
-    function _status(address minter) external view returns (Status memory) {  // 查看状态
+    function _status(address minter) external view returns (Status memory) {  // 查看状态参数
         uint32 publicSupply = _maxSupply - _teamSupply;
         uint32 publicMinted = uint32(ERC721A._totalMinted()) - _teamMinted;
 
@@ -162,8 +162,8 @@ contract PieceOfShit is ERC2981, ERC721AQueryable, Ownable {
         });
     }
 
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) { // 查看单个tokenURI，给opensea看的
-        if (!_exists(tokenId)) revert URIQueryForNonexistentToken();
+    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) { // 重写721a，查看单个tokenURI，给opensea看的，后面需要加.json，721a不需要
+        if (!_exists(tokenId)) revert URIQueryForNonexistentToken(); //不存在就抛出异常
 
         string memory baseURI = _metadataURI;
         return string(abi.encodePacked(baseURI, tokenId.toString(), ".json"));
@@ -182,7 +182,7 @@ contract PieceOfShit is ERC2981, ERC721AQueryable, Ownable {
         _safeMint(to, amount);
     }
 
-    function setFeeNumerator(uint96 feeNumerator) public onlyOwner {  // ？？？ 3
+    function setFeeNumerator(uint96 feeNumerator) public onlyOwner {  // ？？？ 3，设置免费的数量？Numerator分子
         _setDefaultRoyalty(owner(), feeNumerator);
     }
 
