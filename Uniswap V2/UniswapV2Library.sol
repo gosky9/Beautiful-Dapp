@@ -109,6 +109,7 @@ library UniswapV2Library {
     * 两个计算公式实际是一样的， 只是一个求in,一个求out
     * (rIn + in * f) * (rOut - out) = rIn * rOut
     * (x+△x) * (y-△y) = x * y
+    * (x+△x*0.997) * (y-△y) = x * y ?
     *
     * 由out计算in  getAmountIn
     *      (rIn + in * f) * (rOut - out) = rIn * rOut
@@ -120,7 +121,7 @@ library UniswapV2Library {
     *      in = rIn * out / (f * (rOut - out)) + 1  (尾部的 +1应该是避免精度计算，最后一位小了，会成交不了)
     *
     *
-    * 由in计算out  getAmountOut 下面是公式转换过程，最终就简化成代码中的
+    * 由in计算out  getAmountOut 下面是公式转换过程，最终就简化成代码中的..f=0.997
     *      (rIn + in * f) * (rOut - out) = rIn * rOut
 
     *      rIn * rOut + in * f * rOut  - rIn * out - in * f * out = rIn * rOut
