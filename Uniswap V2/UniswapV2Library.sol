@@ -108,7 +108,7 @@ library UniswapV2Library {
     *
     * 两个计算公式实际是一样的， 只是一个求in,一个求out
     * (rIn + in * f) * (rOut - out) = rIn * rOut
-    *
+    * (x+△x) * (y-△y) = x * y
     *
     * 由out计算in  getAmountIn
     *      (rIn + in * f) * (rOut - out) = rIn * rOut
