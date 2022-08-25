@@ -7,4 +7,4 @@ https://etherscan.io/address/0x7a250d5630b4cf539739df2c5dacb4c659f2488d#code
 - 移除流动性（支持代付 GAS 代币）removeLiquidityETHSupportingFeeOnTransferTokens，removeLiquidityETHWithPermitSupportingFeeOnTransferTokens
 - 交易 (\_swap, swapExactTokensForTokens, swapTokensForExactTokens,swapExactETHForTokens,swapTokensForExactETH,swapExactTokensForETH,swapETHForExactTokens)
 - 交易（支持代付 GAS 代币）(\_swapSupportingFeeOnTransferTokens,swapExactTokensForTokensSupportingFeeOnTransferTokens,swapExactETHForTokensSupportingFeeOnTransferTokens,swapExactTokensForETHSupportingFeeOnTransferTokens)
-- library：token 排序，计算交易对地址，获取储备粮，计算另一个数量(quote,getAmountOut,getAmountIn,getAmountsOut,getAmountsIn)
+- library：token 排序（sortTokens），计算交易对地址 pairFor，获取储备量（getReserves），计算另一个数量(quote,getAmountOut,getAmountIn,getAmountsOut,getAmountsIn)
